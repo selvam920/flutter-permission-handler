@@ -4,6 +4,14 @@ set(CPPWINRT_VERSION "2.0.210806.1")
 project(${PROJECT_NAME} LANGUAGES CXX)
 include(FetchContent)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(MSVC AND MSVC_VERSION LESS 1930)
+  message(FATAL_ERROR "Visual Studio 2022 with MSVC v143 or newer is required.")
+endif()
+
 # This value is used when generating builds using this plugin, so it must
 # not be changed
 set(PLUGIN_NAME "${PROJECT_NAME}_plugin")

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 project(example LANGUAGES CXX)
 
+if(MSVC AND MSVC_VERSION LESS 1930)
+  message(FATAL_ERROR "Visual Studio 2022 with MSVC v143 or newer is required.")
+endif()
+
 set(BINARY_NAME "example")
 
 cmake_policy(SET CMP0063 NEW)
@@ -31,7 +35,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 
 # Compilation settings that should be applied to most targets.
 function(APPLY_STANDARD_SETTINGS TARGET)
-  target_compile_features(${TARGET} PUBLIC cxx_std_17)
+  target_compile_features(${TARGET} PUBLIC cxx_std_20)
   target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
   target_compile_options(${TARGET} PRIVATE /EHsc)
   target_compile_definitions(${TARGET} PRIVATE "_HAS_EXCEPTIONS=0")
