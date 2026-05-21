@@ -10,6 +10,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -64,7 +65,7 @@ class PermissionHandlerWindowsPlugin : public Plugin {
  private:
   void IsLocationServiceEnabled(std::unique_ptr<MethodResult<>> result);
   void IsBluetoothServiceEnabled(std::unique_ptr<MethodResult<>> result);
-  winrt::Windows::Foundation::IAsyncOperation<PermissionConstants::ServiceStatus> GetBluetoothServiceStatusAsync();
+  winrt::Windows::Foundation::IAsyncOperation<int32_t> GetBluetoothServiceStatusAsync();
 
   winrt::Windows::Devices::Geolocation::Geolocator geolocator;
   winrt::Windows::Devices::Geolocation::Geolocator::PositionChanged_revoker m_positionChangedRevoker;
@@ -163,13 +164,13 @@ void PermissionHandlerWindowsPlugin::IsBluetoothServiceEnabled(std::unique_ptr<M
   status_operation.Completed(
       [method_result](const auto& async_operation,
                       winrt::Windows::Foundation::AsyncStatus async_status) {
-        auto service_status = PermissionConstants::ServiceStatus::DISABLED;
+        int32_t service_status = static_cast<int32_t>(PermissionConstants::ServiceStatus::DISABLED);
 
         if (async_status == winrt::Windows::Foundation::AsyncStatus::Completed) {
           try {
             service_status = async_operation.GetResults();
           } catch (const winrt::hresult_error&) {
-            service_status = PermissionConstants::ServiceStatus::DISABLED;
+            service_status = static_cast<int32_t>(PermissionConstants::ServiceStatus::DISABLED);
           }
         }
 
@@ -177,12 +178,12 @@ void PermissionHandlerWindowsPlugin::IsBluetoothServiceEnabled(std::unique_ptr<M
       });
 }
 
-winrt::Windows::Foundation::IAsyncOperation<PermissionConstants::ServiceStatus>
+winrt::Windows::Foundation::IAsyncOperation<int32_t>
 PermissionHandlerWindowsPlugin::GetBluetoothServiceStatusAsync() {
   auto bt_adapter = co_await BluetoothAdapter::GetDefaultAsync();
 
   if (bt_adapter == nullptr || !bt_adapter.IsCentralRoleSupported()) {
-    co_return PermissionConstants::ServiceStatus::DISABLED;
+    co_return static_cast<int32_t>(PermissionConstants::ServiceStatus::DISABLED);
   }
 
   auto radios = co_await Radio::GetRadiosAsync();
@@ -191,12 +192,12 @@ PermissionHandlerWindowsPlugin::GetBluetoothServiceStatusAsync() {
     auto radio = radios.GetAt(i);
     if (radio.Kind() == RadioKind::Bluetooth) {
       co_return radio.State() == RadioState::On
-          ? PermissionConstants::ServiceStatus::ENABLED
-          : PermissionConstants::ServiceStatus::DISABLED;
+          ? static_cast<int32_t>(PermissionConstants::ServiceStatus::ENABLED)
+          : static_cast<int32_t>(PermissionConstants::ServiceStatus::DISABLED);
     }
   }
 
-  co_return PermissionConstants::ServiceStatus::DISABLED;
+  co_return static_cast<int32_t>(PermissionConstants::ServiceStatus::DISABLED);
 }
 
 }  // namespace
