@@ -9,6 +9,7 @@
 #include <flutter/encodable_value.h>
 #include <windows.h>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -62,7 +63,8 @@ class PermissionHandlerWindowsPlugin : public Plugin {
 
  private:
   void IsLocationServiceEnabled(std::unique_ptr<MethodResult<>> result);
-  winrt::fire_and_forget IsBluetoothServiceEnabled(std::unique_ptr<MethodResult<>> result);
+  void IsBluetoothServiceEnabled(std::unique_ptr<MethodResult<>> result);
+  winrt::Windows::Foundation::IAsyncOperation<PermissionConstants::ServiceStatus> GetBluetoothServiceStatusAsync();
 
   winrt::Windows::Devices::Geolocation::Geolocator geolocator;
   winrt::Windows::Devices::Geolocation::Geolocator::PositionChanged_revoker m_positionChangedRevoker;
@@ -154,33 +156,47 @@ void PermissionHandlerWindowsPlugin::IsLocationServiceEnabled(std::unique_ptr<Me
         : PermissionConstants::ServiceStatus::DISABLED)));
 }
 
-winrt::fire_and_forget PermissionHandlerWindowsPlugin::IsBluetoothServiceEnabled(std::unique_ptr<MethodResult<>> result) {
-  auto btAdapter = co_await BluetoothAdapter::GetDefaultAsync();
+void PermissionHandlerWindowsPlugin::IsBluetoothServiceEnabled(std::unique_ptr<MethodResult<>> result) {
+  auto method_result = std::shared_ptr<MethodResult<>>(result.release());
+  auto status_operation = GetBluetoothServiceStatusAsync();
 
-  if (btAdapter == nullptr) {
-    result->Success(EncodableValue((int)PermissionConstants::ServiceStatus::DISABLED));
-    co_return;
+  status_operation.Completed(
+      [method_result](const auto& async_operation,
+                      winrt::Windows::Foundation::AsyncStatus async_status) {
+        auto service_status = PermissionConstants::ServiceStatus::DISABLED;
+
+        if (async_status == winrt::Windows::Foundation::AsyncStatus::Completed) {
+          try {
+            service_status = async_operation.GetResults();
+          } catch (const winrt::hresult_error&) {
+            service_status = PermissionConstants::ServiceStatus::DISABLED;
+          }
+        }
+
+        method_result->Success(EncodableValue(static_cast<int>(service_status)));
+      });
+}
+
+winrt::Windows::Foundation::IAsyncOperation<PermissionConstants::ServiceStatus>
+PermissionHandlerWindowsPlugin::GetBluetoothServiceStatusAsync() {
+  auto bt_adapter = co_await BluetoothAdapter::GetDefaultAsync();
+
+  if (bt_adapter == nullptr || !bt_adapter.IsCentralRoleSupported()) {
+    co_return PermissionConstants::ServiceStatus::DISABLED;
   }
-  
-  if (!btAdapter.IsCentralRoleSupported()) {
-    result->Success(EncodableValue((int)PermissionConstants::ServiceStatus::DISABLED));
-    co_return;
-  }
-  
+
   auto radios = co_await Radio::GetRadiosAsync();
 
-  for (uint32_t i=0; i<radios.Size(); i++) {
+  for (uint32_t i = 0; i < radios.Size(); i++) {
     auto radio = radios.GetAt(i);
-    if(radio.Kind() == RadioKind::Bluetooth) {
-      co_await radio.SetStateAsync(RadioState::On);
-      result->Success(EncodableValue((int)(radio.State() == RadioState::On
-            ? PermissionConstants::ServiceStatus::ENABLED
-            : PermissionConstants::ServiceStatus::DISABLED)));
-      co_return;
+    if (radio.Kind() == RadioKind::Bluetooth) {
+      co_return radio.State() == RadioState::On
+          ? PermissionConstants::ServiceStatus::ENABLED
+          : PermissionConstants::ServiceStatus::DISABLED;
     }
   }
 
-  result->Success(EncodableValue((int)PermissionConstants::ServiceStatus::DISABLED));
+  co_return PermissionConstants::ServiceStatus::DISABLED;
 }
 
 }  // namespace
