@@ -1,5 +1,5 @@
 import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
 
 void main() {

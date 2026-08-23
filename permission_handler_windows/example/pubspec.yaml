@@ -9,6 +9,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  material_ui: any
+  permission_handler_platform_interface: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
