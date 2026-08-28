@@ -22,9 +22,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    if (project.android.hasProperty("namespace")) {
-      namespace 'com.baseflow.permissionhandlerexample'
-    }
+    namespace 'com.baseflow.permissionhandlerexample'
     compileSdk = 37
 
     compileOptions {
