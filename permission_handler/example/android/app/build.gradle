@@ -21,9 +21,11 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+
 android {
     namespace 'com.baseflow.permissionhandlerexample'
     compileSdk = 37
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_21
